@@ -1,0 +1,23 @@
+import qrcode
+
+def generate_qr(data, filename='qrcode.png'):
+    # Create a QRCode object
+    qr = qrcode.QRCode(
+        version=1,  # Size of the QR Code (1 is the smallest)
+        error_correction=qrcode.constants.ERROR_CORRECT_L,  # Error correction level
+        box_size=10,  # Size of each box in pixels
+        border=4,     # Thickness of the border (minimum is 4)
+    )
+    qr.add_data(data)  # Add the data (text or URL)
+    qr.make(fit=True)  # Optimize the QR code size
+
+    # Create the image of the QR code
+    img = qr.make_image(fill_color="black", back_color="white")
+
+    # Save the image to a file
+    img.save(filename)
+    print(f"QR code saved as {filename}")
+
+# Get input from the user
+text_or_link = input("Enter the text or link to encode: ")
+generate_qr(text_or_link)
