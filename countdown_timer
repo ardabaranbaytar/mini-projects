@@ -1,0 +1,11 @@
+import time
+
+def countdown(seconds):
+    while seconds > 0:
+        print(f"Time remaining: {seconds} second(s)")
+        time.sleep(1)
+        seconds -= 1
+    print("Time's up!")
+
+# Example usage
+countdown(10)  # Change 10 to any number of seconds you want
