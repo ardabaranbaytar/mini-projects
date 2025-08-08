@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>İlgi Alanlarım | Satranç, Kripto, AI, İspanyolca</title>
+<meta name="description" content="Satranç, kripto paralar, yapay zeka ve İspanyolca üzerine paylaşımlar ve kaynaklar." />
+<style>
+  :root {
+    --bg: #f4f4f9;
+    --fg: #1c1c1e;
+    --sub: #6b7280;
+    --card-bg: #ffffff;
+    --border: #e5e7eb;
+    --accent: #4f46e5;
+    --accent-fg: #ffffff;
+    --shadow-color: 220 3% 15%;
+  }
+
+  .dark {
+    --bg: #111827;
+    --fg: #f9fafb;
+    --sub: #9ca3af;
+    --card-bg: #1f2937;
+    --border: #374151;
+    --accent: #818cf8;
+    --accent-fg: #111827;
+    --shadow-color: 220 40% 2%;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+    background-color: var(--bg);
+    color: var(--fg);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 2rem;
+  }
+
+  header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 2rem;
+  }
+
+  header h1 {
+    font-size: 2rem;
+    margin: 0;
+  }
+
+  .theme-toggle {
+    background: var(--card-bg);
+    color: var(--fg);
+    border: 1px solid var(--border);
+    padding: 0.5rem 1rem;
+    border-radius: 999px;
+    cursor: pointer;
+    font-size: 1rem;
+    transition: all 0.2s ease-in-out;
+  }
+
+  .theme-toggle:hover {
+    border-color: var(--accent);
+  }
+
+  .grid-container {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 2rem;
+  }
+
+  .topic-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 4px 6px -1px rgba(var(--shadow-color), 0.1), 0 2px 4px -2px rgba(var(--shadow-color), 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .topic-card:hover {
+    transform: translateY(-5px) scale(1.02);
+    box-shadow: 0 10px 15px -3px rgba(var(--shadow-color), 0.1), 0 4px 6px -4px rgba(var(--shadow-color), 0.1);
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .card-icon {
+    font-size: 2.5rem;
+    line-height: 1;
+  }
+
+  .card-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  .card-description {
+    color: var(--sub);
+    line-height: 1.6;
+    flex-grow: 1; /* Açıklamayı esnetir */
+  }
+
+  .card-link {
+    display: inline-block;
+    margin-top: 1.5rem;
+    background-color: var(--accent);
+    color: var(--accent-fg);
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    text-align: center;
+    transition: background-color 0.2s ease;
+  }
+
+  .card-link:hover {
+    background-color: color-mix(in srgb, var(--accent) 85%, black);
+  }
+
+  footer {
+    text-align: center;
+    margin-top: 4rem;
+    padding-top: 2rem;
+    border-top: 1px solid var(--border);
+    color: var(--sub);
+  }
+  
+  footer a {
+      color: var(--accent);
+      text-decoration: none;
+  }
+  
+  footer a:hover {
+      text-decoration: underline;
+  }
+
+  /* Mobil Cihazlar İçin Duyarlılık */
+  @media (max-width: 768px) {
+    .grid-container {
+      grid-template-columns: 1fr;
+    }
+    header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+  }
+</style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <h1>Paylaşımlarım</h1>
+      <button id="theme-toggle" class="theme-toggle">🌓 Tema Değiştir</button>
+    </header>
+
+    <main>
+      <div class="grid-container">
+        <!-- Satranç Kartı -->
+        <div class="topic-card">
+          <div class="card-header">
+            <span class="card-icon">♟️</span>
+            <h2 class="card-title">Satranç</h2>
+          </div>
+          <p class="card-description">Strateji, taktikler, açılışlar ve unutulmaz oyun analizleri. Satranç dünyasındaki yolculuğuma ve öğrendiklerime dair notlar.</p>
+          <a href="#" class="card-link">Yazıları Gör</a>
+        </div>
+
+        <!-- Kripto Kartı -->
+        <div class="topic-card">
+          <div class="card-header">
+            <span class="card-icon">₿</span>
+            <h2 class="card-title">Kripto & DeFi</h2>
+          </div>
+          <p class="card-description">Blockchain teknolojisinin temelleri, merkeziyetsiz finans (DeFi) projeleri ve piyasa analizleri. Bu heyecan verici ekosistemi birlikte keşfedelim.</p>
+          <a href="#" class="card-link">Yazıları Gör</a>
+        </div>
+
+        <!-- Yapay Zeka Kartı -->
+        <div class="topic-card">
+          <div class="card-header">
+            <span class="card-icon">🤖</span>
+            <h2 class="card-title">Yapay Zeka</h2>
+          </div>
+          <p class="card-description">Makine öğrenmesi, büyük dil modelleri ve yapay zekanın geleceği üzerine düşünceler. En yeni gelişmeleri ve pratik uygulamaları inceliyorum.</p>
+          <a href="#" class="card-link">Yazıları Gör</a>
+        </div>
+
+        <!-- İspanyolca Kartı -->
+        <div class="topic-card">
+          <div class="card-header">
+            <span class="card-icon">🇪🇸</span>
+            <h2 class="card-title">İspanyolca</h2>
+          </div>
+          <p class="card-description">Dil öğrenme serüvenim, faydalı kaynaklar, pratik ipuçları ve İspanyol kültürüne dair ilginç notlar. ¡Vamos a aprender juntos!</p>
+          <a href="#" class="card-link">Yazıları Gör</a>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <p>&copy; 2025 | Tüm hakları saklıdır. <a href="#">Twitter</a> üzerinden takip edebilirsiniz.</p>
+    </footer>
+  </div>
+
+<script>
+  (function() {
+    const themeToggle = document.getElementById('theme-toggle');
+    const htmlElement = document.documentElement;
+
+    // Sayfa yüklendiğinde kayıtlı temayı uygula
+    const savedTheme = localStorage.getItem('personal-page-theme') || 'light';
+    if (savedTheme === 'dark') {
+      htmlElement.classList.add('dark');
+    }
+
+    // Tema değiştirme butonu
+    themeToggle.addEventListener('click', () => {
+      htmlElement.classList.toggle('dark');
+      const currentTheme = htmlElement.classList.contains('dark') ? 'dark' : 'light';
+      localStorage.setItem('personal-page-theme', currentTheme);
+    });
+  })();
+</script>
+
+</body>
+</html>
