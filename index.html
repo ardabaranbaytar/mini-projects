@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sudoku — Simple + Pencil + Timer</title>
+<style>
+  :root {
+    --bg: #fafafa;
+    --fg: #111;
+    --sub: #555;
+    --grid: #d0d0d0;
+    --grid-bold: #111;
+    --accent: #2979ff;
+    --given-bg: #f0f3ff;
+    --error: #ff5252;
+    --ok: #2e7d32;
+    --select: #fff3cd;
+    --same: #e8f5e9;
+  }
+  .dark {
+    --bg: #0f1115;
+    --fg: #eaeef5;
+    --sub: #a9b0bd;
+    --grid: #2b2f37;
+    --grid-bold: #eaeef5;
+    --accent: #7aa2ff;
+    --given-bg: #151a22;
+    --error: #ff6b6b;
+    --ok: #7bd88f;
+    --select: #2a2533;
+    --same: #1e2a22;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    background: var(--bg); color: var(--fg);
+    display: flex; min-height: 100svh; align-items: center; justify-content: center;
+  }
+  .app { width: min(96vw, 1100px); padding: 20px; }
+  header { display: flex; gap: 12px; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .title { font-weight: 700; letter-spacing: .2px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  select, button {
+    background: transparent; color: var(--fg); border: 1px solid var(--grid);
+    padding: 8px 12px; border-radius: 8px; cursor: pointer;
+  }
+  button.primary { border-color: var(--accent); color: var(--accent); }
+  button.danger { border-color: var(--error); color: var(--error); }
+  button:disabled { opacity: .5; cursor: not-allowed; }
+  button.toggle.active { border-color: var(--accent); color: var(--accent); }
+  .wrapper { display: grid; grid-template-columns: 1fr 320px; gap: 18px; }
+  @media (max-width: 900px) { .wrapper { grid-template-columns: 1fr; } }
+  .board {
+    width: min(88vw, 600px); aspect-ratio: 1/1; background: var(--bg);
+    border: 2px solid var(--grid-bold); border-radius: 8px; overflow: clip;
+    display: grid; grid-template-columns: repeat(9, 1fr); grid-template-rows: repeat(9, 1fr);
+  }
+  .cell { position: relative; border: 1px solid var(--grid); }
+  /* Kalın kutu çizgileri (3x3 sınırlar) */
+  .cell[data-r="2"], .cell[data-r="5"] { border-bottom: 2px solid var(--grid-bold); }
+  .cell[data-c="2"], .cell[data-c="5"] { border-right: 2px solid var(--grid-bold); }
+  input.su{
+    width: 100%; height: 100%; text-align: center; font-size: clamp(18px, 4.2vw, 28px);
+    background: transparent; color: var(--fg); border: none; outline: none; caret-color: var(--accent);
+    font-weight: 600; position: relative; z-index: 2;
+  }
+  .given input { color: var(--fg); background: var(--given-bg); font-weight: 700; }
+  .cell.selected { background: var(--select); }
+  .cell.same { background: var(--same); }
+  .cell.error input { color: var(--error); }
+
+  /* Pencil (not) ızgarası */
+  .pencil-grid{
+    position: absolute; inset: 3px; z-index: 1;
+    display: grid; grid-template-columns: repeat(3, 1fr); grid-template-rows: repeat(3, 1fr);
+    font-size: clamp(8px, 1.3vw, 12px); color: var(--sub); pointer-events: none;
+  }
+  .pencil-mark{ display: flex; align-items: center; justify-content: center; opacity: 0; }
+  .pencil-mark.visible{ opacity: .9; }
+
+  .aside { display: grid; gap: 12px; align-content: start; }
+  .pad { display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; }
+  .pad button { font-weight: 700; padding: 14px 0; border-radius: 10px; border-color: var(--grid); }
+  .info { color: var(--sub); font-size: 14px; line-height: 1.4; }
+  .status { font-weight: 600; }
+  .status.ok { color: var(--ok); }
+  .status.err { color: var(--error); }
+  .status-bar{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  .timer{ font-variant-numeric: tabular-nums; color: var(--sub); }
+  .footer { margin-top: 12px; color: var(--sub); font-size: 12px; }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+  <div class="app">
+    <header>
+      <div class="row">
+        <div class="title">Sudoku</div>
+      </div>
+      <div class="controls">
+        <label>
+          <select id="difficulty" aria-label="Difficulty">
+            <option value="easy">Easy (40 clues)</option>
+            <option value="medium" selected>Medium (32 clues)</option>
+            <option value="hard">Hard (28 clues)</option>
+          </select>
+        </label>
+        <button id="new" class="primary">New Game</button>
+        <button id="check">Check Mistakes</button>
+        <button id="solve" class="danger">Reveal Solution</button>
+        <button id="pencil" class="toggle" title="Toggle pencil mode" aria-pressed="false">✏️ Pencil</button>
+        <button id="theme" class="toggle" title="Toggle theme" aria-pressed="false">🌓 Theme</button>
+      </div>
+    </header>
+
+    <div class="wrapper">
+      <div id="board" class="board" role="grid" aria-label="Sudoku board"></div>
+
+      <aside class="aside">
+        <div class="pad" id="numpad"></div>
+        <div class="info">
+          - Use the ✏️ Pencil button (or press “P”) to toggle note-taking mode.<br/>
+          - Select a cell and type 1–9, or use the keypad.<br/>
+          - “Check Mistakes” highlights rule violations (row/col/box).<br/>
+          - “Reveal Solution” fills the board.<br/>
+          - Timer starts on a new game and stops on a correct completion.
+        </div>
+        <div class="status-bar">
+          <div id="status" class="status" aria-live="polite"></div>
+          <div id="timer" class="timer">00:00</div>
+        </div>
+        <div class="footer">Client‑side Sudoku. No tracking.</div>
+      </aside>
+    </div>
+  </div>
+
+<script>
+(function(){
+  // --- DOM Elements ---
+  const boardEl = document.getElementById('board');
+  const padEl = document.getElementById('numpad');
+  const statusEl = document.getElementById('status');
+  const timerEl = document.getElementById('timer');
+  const newBtn = document.getElementById('new');
+  const checkBtn = document.getElementById('check');
+  const solveBtn = document.getElementById('solve');
+  const pencilBtn = document.getElementById('pencil');
+  const diffSel = document.getElementById('difficulty');
+  const themeBtn = document.getElementById('theme');
+
+  // --- Game State ---
+  let puzzle = Array(81).fill(0);
+  let solution = Array(81).fill(0);
+  let user = Array(81).fill(0);
+  let pencilMarks = Array(81).fill(null).map(() => new Set());
+  let given = new Set();
+  let selected = -1;
+  let isPencilMode = false;
+  let timerInterval = null;
+  let secondsElapsed = 0;
+
+  // --- Utilities ---
+  const idx = (r,c) => r*9 + c;
+  const row = (i) => Math.floor(i/9);
+  const col = (i) => i%9;
+  const boxIndex = (i) => Math.floor(row(i)/3)*3 + Math.floor(col(i)/3);
+  const shuffle = (a) => { for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]];} return a; };
+  const clone = (a) => a.slice();
+
+  // --- Logic: Validation and Generation ---
+  function isValid(grid, i, val){
+    if(val===0) return true;
+    const r = row(i), c = col(i);
+    for(let k=0;k<9;k++){
+      if(grid[idx(r,k)]===val && k!==c) return false;
+      if(grid[idx(k,c)]===val && k!==r) return false;
+    }
+    const br = Math.floor(r/3)*3, bc = Math.floor(c/3)*3;
+    for(let rr=0; rr<3; rr++){
+      for(let cc=0; cc<3; cc++){
+        const ii = idx(br+rr, bc+cc);
+        if(ii!==i && grid[ii]===val) return false;
+      }
+    }
+    return true;
+  }
+
+  function nextEmpty(grid){
+    for(let i=0;i<81;i++) if(grid[i]===0) return i;
+    return -1;
+  }
+
+  function solveBacktrack(grid){
+    const i = nextEmpty(grid);
+    if(i===-1) return true;
+    const nums = shuffle([1,2,3,4,5,6,7,8,9]);
+    for(const n of nums){
+      if(isValid(grid, i, n)){
+        grid[i]=n;
+        if(solveBacktrack(grid)) return true;
+        grid[i]=0;
+      }
+    }
+    return false;
+  }
+
+  function countSolutions(grid, limit=2){
+    let count = 0;
+    function dfs(){
+      if(count>=limit) return;
+      const i = nextEmpty(grid);
+      if(i===-1){ count++; return; }
+      for(let n=1;n<=9;n++){
+        if(isValid(grid, i, n)){
+          grid[i]=n;
+          dfs();
+          grid[i]=0;
+          if(count>=limit) return;
+        }
+      }
+    }
+    dfs();
+    return count;
+  }
+
+  function fillDiagonalBoxes(grid){
+    for(const b of [0,4,8]){
+      const br = Math.floor(b/3)*3, bc = (b%3)*3;
+      const nums = shuffle([1,2,3,4,5,6,7,8,9]);
+      let t=0;
+      for(let r=0;r<3;r++){
+        for(let c=0;c<3;c++){
+          grid[idx(br+r, bc+c)] = nums[t++];
+        }
+      }
+    }
+  }
+
+  function generateSolved(){
+    const g = Array(81).fill(0);
+    fillDiagonalBoxes(g);
+    solveBacktrack(g);
+    return g;
+  }
+
+  function makePuzzle(solved, clues=32){
+    const g = clone(solved);
+    const cells = shuffle([...Array(81).keys()]);
+    let toRemove = 81 - clues;
+    for(const i of cells){
+      if(toRemove<=0) break;
+      const backup = g[i];
+      g[i]=0;
+      const tmp = clone(g);
+      const solCount = countSolutions(tmp, 2);
+      if(solCount !== 1){
+        g[i]=backup;
+      } else {
+        toRemove--;
+      }
+    }
+    return g;
+  }
+
+  // --- UI Build ---
+  function buildBoard(){
+    boardEl.innerHTML = '';
+    for(let r=0;r<9;r++){
+      for(let c=0;c<9;c++){
+        const i = idx(r,c);
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.dataset.r = r;
+        cell.dataset.c = c;
+
+        const input = document.createElement('input');
+        input.className = 'su';
+        input.type = 'text';
+        input.inputMode = 'numeric';
+        input.autocomplete = 'off';
+        input.spellcheck = false;
+        input.maxLength = 1;
+        input.dataset.i = i;
+
+        const pencilGrid = document.createElement('div');
+        pencilGrid.className = 'pencil-grid';
+        for (let p = 1; p <= 9; p++) {
+          const mark = document.createElement('div');
+          mark.className = 'pencil-mark';
+          mark.dataset.mark = p;
+          mark.textContent = p;
+          pencilGrid.appendChild(mark);
+        }
+
+        if(puzzle[i]!==0){
+          cell.classList.add('given');
+          input.value = puzzle[i];
+          input.disabled = true;
+        } else {
+          input.value = user[i] ? user[i] : '';
+          updatePencilMarks(pencilGrid, i);
+        }
+
+        input.addEventListener('focus', ()=> selectCell(i));
+        input.addEventListener('click', ()=> selectCell(i));
+        input.addEventListener('keydown', handleKeyDown);
+
+        cell.appendChild(input);
+        cell.appendChild(pencilGrid);
+        boardEl.appendChild(cell);
+      }
+    }
+    updateHighlights();
+  }
+
+  function handleKeyDown(e){
+    const i = parseInt(e.target.dataset.i, 10);
+    const k = e.key;
+    if(/^[1-9]$/.test(k)){
+      setValue(i, Number(k));
+      e.preventDefault();
+    } else if(k==='Backspace' || k==='Delete' || k==='0'){
+      setValue(i, 0);
+      e.preventDefault();
+    } else if(k==='ArrowLeft'){ moveSel(i,0,-1); e.preventDefault(); }
+    else if(k==='ArrowRight'){ moveSel(i,0,1); e.preventDefault(); }
+    else if(k==='ArrowUp'){ moveSel(i,-1,0); e.preventDefault(); }
+    else if(k==='ArrowDown'){ moveSel(i,1,0); e.preventDefault(); }
+    else if(k.toLowerCase() === 'p'){ togglePencilMode(); e.preventDefault(); }
+  }
+
+  function moveSel(i,dr,dc){
+    let r = row(i)+dr, c = col(i)+dc;
+    r = (r+9)%9; c = (c+9)%9;
+    const ni = idx(r,c);
+    selectCell(ni);
+    const inp = boardEl.querySelector(`input[data-i="${ni}"]`);
+    if(inp) inp.focus();
+  }
+
+  function selectCell(i){
+    selected = i;
+    updateHighlights();
+  }
+
+  function updateHighlights(){
+    const cells = boardEl.querySelectorAll('.cell');
+    cells.forEach(el=> el.classList.remove('selected','same','error'));
+    if(selected>=0){
+      const sr = row(selected), sc = col(selected);
+      for(let i=0;i<81;i++){
+        const r = row(i), c = col(i);
+        const el = cells[i];
+        if(r===sr || c===sc || boxIndex(i)===boxIndex(selected)){
+          el.classList.add('selected');
+        }
+      }
+      const val = getVal(selected);
+      if(val){
+        for(let i=0;i<81;i++){
+          if(getVal(i)===val) cells[i].classList.add('same');
+        }
+      }
+    }
+    markErrors();
+  }
+
+  function getVal(i){
+    return puzzle[i] || user[i] || 0;
+  }
+
+  function setValue(i, v){
+    if(given.has(i)) return;
+
+    if (isPencilMode){
+      if (v === 0){
+        pencilMarks[i].clear();
+        updatePencilUI(i);
+      } else {
+        togglePencilMark(i, v);
+      }
+    } else {
+      user[i] = v || 0;
+      pencilMarks[i].clear(); // final girilen sayı, notları temizler
+      const input = boardEl.querySelector(`input[data-i="${i}"]`);
+      if(input) input.value = v ? v : '';
+      updatePencilUI(i);
+      if (v) autoClearPencilMarks(i, v);
+    }
+
+    updateHighlights();
+    checkComplete();
+  }
+
+  function markErrors(){
+    const cells = boardEl.querySelectorAll('.cell');
+    const grid = getGrid();
+    for(let i=0;i<81;i++){
+      const v = grid[i];
+      let err = false;
+      if(v){
+        const tempGrid = clone(grid);
+        tempGrid[i] = 0;
+        if(!isValid(tempGrid, i, v)) err = true;
+      }
+      cells[i].classList.toggle('error', err);
+    }
+  }
+
+  function getGrid(){
+    return puzzle.map((p, i) => p || user[i] || 0);
+  }
+
+  function checkComplete(){
+    const grid = getGrid();
+    if(grid.includes(0)){
+      statusEl.textContent = '';
+      statusEl.className = 'status';
+      return;
+    }
+    const ok = grid.every((v,i)=> v === solution[i]);
+    if(ok){
+      stopTimer(); // sadece doğru çözümde durdur
+      statusEl.textContent = 'Completed! Well done.';
+      statusEl.className = 'status ok';
+    } else {
+      statusEl.textContent = 'Filled, but with incorrect numbers.';
+      statusEl.className = 'status err';
+    }
+  }
+
+  // --- Pencil (Notes) ---
+  function togglePencilMode(){
+    isPencilMode = !isPencilMode;
+    if (pencilBtn){
+      pencilBtn.classList.toggle('active', isPencilMode);
+      pencilBtn.setAttribute('aria-pressed', isPencilMode ? 'true' : 'false');
+    }
+  }
+
+  function togglePencilMark(i, v){
+    if (user[i] !== 0 || !v) return;
+    if (pencilMarks[i].has(v)) pencilMarks[i].delete(v);
+    else pencilMarks[i].add(v);
+    updatePencilUI(i);
+  }
+
+  function updatePencilUI(i){
+    const cell = boardEl.children[i];
+    if (cell){
+      const pencilGrid = cell.querySelector('.pencil-grid');
+      updatePencilMarks(pencilGrid, i);
+    }
+  }
+
+  function updatePencilMarks(gridEl, i){
+    if (!gridEl) return;
+    for (let p = 1; p <= 9; p++){
+      const markEl = gridEl.querySelector(`[data-mark="${p}"]`);
+      if (markEl){
+        markEl.classList.toggle('visible', pencilMarks[i].has(p));
+      }
+    }
+  }
+
+  function autoClearPencilMarks(i, v){
+    const r = row(i), c = col(i), b = boxIndex(i);
+    for (let k = 0; k < 81; k++){
+      if (row(k) === r || col(k) === c || boxIndex(k) === b){
+        if (pencilMarks[k].has(v)){
+          pencilMarks[k].delete(v);
+          updatePencilUI(k);
+        }
+      }
+    }
+  }
+
+  // --- Timer ---
+  function startTimer(){
+    stopTimer();
+    secondsElapsed = 0;
+    updateTimerDisplay();
+    timerInterval = setInterval(() => {
+      secondsElapsed++;
+      updateTimerDisplay();
+    }, 1000);
+  }
+  function stopTimer(){
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+  function updateTimerDisplay(){
+    const minutes = Math.floor(secondsElapsed / 60).toString().padStart(2, '0');
+    const seconds = (secondsElapsed % 60).toString().padStart(2, '0');
+    timerEl.textContent = `${minutes}:${seconds}`;
+  }
+
+  // --- Actions ---
+  function newGame(){
+    statusEl.textContent = 'Generating...';
+    statusEl.className = 'status';
+    checkBtn.disabled = true;
+    solveBtn.disabled = true;
+    stopTimer();
+
+    setTimeout(()=>{
+      const clues = diffSel.value==='easy' ? 40 : diffSel.value==='hard' ? 28 : 32;
+      solution = generateSolved();
+      puzzle = makePuzzle(solution, clues);
+      user = Array(81).fill(0);
+      pencilMarks = Array(81).fill(null).map(() => new Set());
+      given = new Set(puzzle.map((v,i)=> v? i : -1).filter(i=> i!==-1));
+
+      buildBoard();
+      statusEl.textContent = `New ${diffSel.value} puzzle ready.`;
+      statusEl.className = 'status';
+      selected = -1;
+      checkBtn.disabled = false;
+      solveBtn.disabled = false;
+      startTimer();
+    }, 10);
+  }
+
+  function checkMistakes(){
+    markErrors();
+    const anyErr = boardEl.querySelector('.cell.error') !== null;
+    statusEl.textContent = anyErr ? 'Mistakes found (highlighted in red).' : 'No rule violations detected.';
+    statusEl.className = 'status ' + (anyErr ? 'err' : 'ok');
+  }
+
+  function revealSolution(){
+    stopTimer();
+    user = clone(solution);
+    pencilMarks = Array(81).fill(null).map(() => new Set());
+    buildBoard();
+    statusEl.textContent = 'Solution revealed.';
+    statusEl.className = 'status';
+  }
+
+  function buildPad(){
+    const keys = ['1','2','3','4','5','6','7','8','9','⌫'];
+    padEl.innerHTML = '';
+    keys.forEach(k=>{
+      const b = document.createElement('button');
+      b.textContent = k;
+      b.addEventListener('click', ()=>{
+        if(selected<0) return;
+        if(k==='⌫'){ setValue(selected, 0); return; }
+        setValue(selected, Number(k));
+      });
+      padEl.appendChild(b);
+    });
+  }
+
+  function initTheme(){
+    const saved = localStorage.getItem('sudoku-theme') || 'light';
+    if(saved==='dark') document.documentElement.classList.add('dark');
+    themeBtn.setAttribute('aria-pressed', saved==='dark' ? 'true' : 'false');
+    themeBtn.addEventListener('click', ()=>{
+      document.documentElement.classList.toggle('dark');
+      const mode = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
+      themeBtn.setAttribute('aria-pressed', mode==='dark' ? 'true' : 'false');
+      localStorage.setItem('sudoku-theme', mode);
+    });
+  }
+
+  // --- Init ---
+  buildPad();
+  initTheme();
+  newBtn.addEventListener('click', newGame);
+  checkBtn.addEventListener('click', checkMistakes);
+  solveBtn.addEventListener('click', revealSolution);
+  if (pencilBtn) pencilBtn.addEventListener('click', togglePencilMode);
+  diffSel.addEventListener('change', newGame);
+
+  newGame();
+})();
+</script>
+</body>
+</html>
